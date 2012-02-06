@@ -2,23 +2,25 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
 
 type itemConf struct {
-	Path     string
-	Writable bool
+	Path     string `json:"path"`
+	Writable bool   `json:"writable"`
 }
 
-var paths = map[string]itemConf{"tmp": {"/tmp/", false}}
+var paths = make(map[string]itemConf)
 
 func doIndex(w http.ResponseWriter, req *http.Request) {
 	log.Printf("Listing areas.")
-	keys := make([]string, len(paths)-1)
+	keys := []string{}
 	for k, _ := range paths {
 		keys = append(keys, k)
 	}
@@ -50,14 +52,31 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func loadConf(c string) {
+	f, err := os.Open(c)
+	if err != nil {
+		log.Fatalf("Error opening conf file: %v", err)
+	}
+	defer f.Close()
+	err = json.NewDecoder(f).Decode(&paths)
+	if err != nil {
+		log.Fatalf("Error reading conf file:  %v", err)
+	}
+}
+
 func main() {
-	addr := ":8675"
+	addr := flag.String("addr", ":8675", "Address to bind to")
+	confFile := flag.String("conf", "bitfog.json", "Configuration file")
+	flag.Parse()
+
+	loadConf(*confFile)
+
 	s := &http.Server{
-		Addr:         addr,
+		Addr:         *addr,
 		Handler:      http.HandlerFunc(handler),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	log.Printf("Listening to web requests on %s", addr)
+	log.Printf("Listening to web requests on %s", *addr)
 	log.Fatal(s.ListenAndServe())
 }

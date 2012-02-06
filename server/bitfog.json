@@ -1,0 +1,4 @@
+{
+    "src": {"path": "/tmp/src/", "writable": false},
+    "dest": {"path": "/tmp/dest/", "writable": true}
+}
