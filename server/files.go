@@ -82,7 +82,18 @@ func handlePath(conf itemConf, subpath string, w http.ResponseWriter, req *http.
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			fmt.Fprintf(w, "Can't %s here.\n", req.Method)
 		case "GET":
-			http.ServeFile(w, req, abs)
+			log.Printf("Getting %s", abs)
+			f, err := os.Open(abs)
+			if err != nil {
+				log.Printf("Error opening file: %v", err)
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Error fetching file.\n")
+			}
+			defer f.Close()
+			_, err = io.Copy(w, f)
+			if err != nil {
+				log.Printf("Error streaming file: %v", err)
+			}
 		case "PUT":
 			if conf.Writable {
 				doPut(abs, w, req)
