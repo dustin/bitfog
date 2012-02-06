@@ -62,7 +62,7 @@ func doDelete(abs string, w http.ResponseWriter, req *http.Request) {
 
 }
 
-func showPath(conf itemConf, subpath string, w http.ResponseWriter, req *http.Request) {
+func handlePath(conf itemConf, subpath string, w http.ResponseWriter, req *http.Request) {
 	if subpath == "" {
 		log.Printf("Listing %s", conf.Path)
 		listPath(conf.Path, w, req)

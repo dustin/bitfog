@@ -46,7 +46,7 @@ func handler(w http.ResponseWriter, req *http.Request) {
 	case parts[0] == "":
 		doIndex(w, req)
 	case foundPath:
-		showPath(path, subpath, w, req)
+		handlePath(path, subpath, w, req)
 	}
 }
 
