@@ -19,6 +19,12 @@ type FileData struct {
 	Dest  string `json:"linkdest,omitempty"`
 }
 
+func (fd FileData) Equals(other FileData) bool {
+	return fd.Size == other.Size &&
+		fd.Hash == other.Hash &&
+		fd.Dest == other.Dest
+}
+
 func decodeURL(u string) (map[string]FileData, error) {
 	rv := map[string]FileData{}
 
@@ -87,4 +93,45 @@ func downloadFile(src, dest string) error {
 
 	_, err = io.Copy(f, resp.Body)
 	return err
+}
+
+func deleteFile(dest string) error {
+	req, err := http.NewRequest("DELETE", dest, nil)
+	if err != nil {
+		return err
+	}
+	c := http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return errors.New(resp.Status)
+	}
+	return nil
+}
+
+func uploadFile(src, dest string) error {
+	srcfile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcfile.Close()
+
+	req, err := http.NewRequest("PUT", dest, srcfile)
+	if err != nil {
+		return err
+	}
+
+	c := http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return errors.New(resp.Status)
+	}
+	return nil
 }

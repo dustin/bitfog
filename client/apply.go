@@ -1,5 +1,7 @@
 package main
 
+import "log"
+
 // List of files that need to be added, removed.
 func computeChanged(src, dest map[string]FileData) ([]string, []string) {
 	toadd, toremove := []string{}, []string{}
@@ -13,10 +15,12 @@ func computeChanged(src, dest map[string]FileData) ([]string, []string) {
 	for srckey, srcval := range src {
 		destval, found := dest[srckey]
 		if found {
-			if srcval != destval {
+			if !srcval.Equals(destval) {
+				log.Printf("Data mismatch:  %s", srckey)
 				toadd = append(toadd, srckey)
 			}
 		} else {
+			log.Printf("Missing key:  %s", srckey)
 			toadd = append(toadd, srckey)
 		}
 	}

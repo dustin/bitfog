@@ -15,9 +15,9 @@ func init() {
   builddb url dbname     # build a database from the container URL
   emptydb dbname         # build an empty database (representing blank dest)
   fetch destdb src path  # fetch the missing items into a temp dir
+  store srcdb dest path  # store fetched things into the dest
 `)
 		flag.PrintDefaults()
-
 	}
 }
 
@@ -109,6 +109,52 @@ func fetch() {
 	}
 }
 
+func store() {
+	if flag.NArg() < 4 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	srcdb, desturl, tmpPath := flag.Arg(1), flag.Arg(2), flag.Arg(3)
+
+	srcData, err := openDb(srcdb)
+	if err != nil {
+		log.Fatalf("Error reading DB:  %v", err)
+	}
+	defer srcData.Close()
+
+	log.Printf("Read %d files", len(srcData.files))
+
+	destData, err := decodeURL(desturl)
+	if err != nil {
+		log.Fatalf("Error reading from dest: %s: %v", desturl, err)
+	}
+
+	toadd, toremove := computeChanged(srcData.files, destData)
+
+	log.Printf("Need to add %d files, and remove %d around %s",
+		len(toadd), len(toremove), tmpPath)
+
+	for _, fn := range toremove {
+		log.Printf(" - %s", fn)
+		err = deleteFile(desturl + fn)
+		if err != nil {
+			log.Fatalf("Error deleting %s: %v", fn, err)
+		}
+	}
+
+	for _, fn := range toadd {
+		log.Printf(" + %s", fn)
+		src := filepath.Join(tmpPath, fn)
+		err = uploadFile(src, desturl+fn)
+		if err != nil {
+			if !(err.(*os.PathError).Err == os.ENOENT) {
+				log.Fatalf("Error uploading %s: %#v", fn, err)
+			}
+		}
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -126,5 +172,7 @@ func main() {
 		emptydb()
 	case "fetch":
 		fetch()
+	case "store":
+		store()
 	}
 }
