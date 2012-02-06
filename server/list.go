@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type FileData struct {
@@ -24,6 +25,8 @@ type FileData struct {
 var crcTable = crc64.MakeTable(crc64.ISO)
 
 var SkipFile = errors.New("Skip this file.")
+
+var flushInterval = (time.Duration(10) * time.Second)
 
 func computeHash(path string) uint64 {
 	f, err := os.Open(path)
@@ -68,6 +71,9 @@ func describe(p, fileName string, info os.FileInfo) (fd FileData, err error) {
 func listPath(walking string, w http.ResponseWriter, req *http.Request) {
 	e := json.NewEncoder(w)
 
+	flusher, isFlusher := w.(http.Flusher)
+	nextFlush := time.Now().Add(flushInterval)
+
 	f := func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Printf("Traversal error: %v", err)
@@ -84,6 +90,10 @@ func listPath(walking string, w http.ResponseWriter, req *http.Request) {
 				log.Printf("Error describing file: %v", err)
 			case nil:
 				e.Encode(fd)
+				if isFlusher && time.Now().After(nextFlush) {
+					flusher.Flush()
+					nextFlush = time.Now().Add(flushInterval)
+				}
 			case SkipFile:
 				// Just skipping htis
 			}
