@@ -44,7 +44,7 @@ func isa(mode os.FileMode, seeking os.FileMode) bool {
 	return mode&seeking == seeking
 }
 
-func describe(p, fileName string, info os.FileInfo) (fd FileData, err error) {
+func describe(p, fileName string, info os.FileInfo, checksum bool) (fd FileData, err error) {
 	fd.Name = fileName
 	fd.Size = info.Size()
 	fd.Mode = int32(info.Mode())
@@ -52,7 +52,9 @@ func describe(p, fileName string, info os.FileInfo) (fd FileData, err error) {
 
 	switch {
 	default:
-		fd.Hash = computeHash(p)
+		if checksum {
+			fd.Hash = computeHash(p)
+		}
 	case isa(info.Mode(), os.ModeSymlink):
 		fd.Dest, err = os.Readlink(p)
 		if err != nil {
@@ -68,9 +70,10 @@ func describe(p, fileName string, info os.FileInfo) (fd FileData, err error) {
 	return
 }
 
-func listPath(walking string, w http.ResponseWriter, req *http.Request) {
+func listPath(conf itemConf, w http.ResponseWriter, req *http.Request) {
 	e := json.NewEncoder(w)
 
+	walking := conf.Path
 	flusher, isFlusher := w.(http.Flusher)
 	nextFlush := time.Now().Add(flushInterval)
 
@@ -84,7 +87,7 @@ func listPath(walking string, w http.ResponseWriter, req *http.Request) {
 			}
 			fileName := p[len(walking):]
 
-			fd, err := describe(p, fileName, info)
+			fd, err := describe(p, fileName, info, conf.Checksum)
 			switch err {
 			default:
 				log.Printf("Error describing file: %v", err)

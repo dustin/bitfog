@@ -14,6 +14,7 @@ import (
 type itemConf struct {
 	Path     string `json:"path"`
 	Writable bool   `json:"writable"`
+	Checksum bool   `json:"checksum"`
 }
 
 var paths = make(map[string]itemConf)
