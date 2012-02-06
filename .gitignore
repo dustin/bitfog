@@ -1,7 +1,9 @@
 #*
 *.6
 *.a
+*.db
 *~
+/client/bitfog
+/server/bitfogserv
 6.out
 _*
-/server/bitfogserv
