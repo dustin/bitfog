@@ -40,9 +40,13 @@ func absolutize(path, subpath string) (string, *fileError) {
 func doPut(abs string, w http.ResponseWriter, req *http.Request) {
 	f, err := os.Create(abs)
 	if err != nil {
-		log.Printf("Problem opening %s: %v", abs, err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error deleting file.\n")
+		os.MkdirAll(filepath.Dir(abs), 0777)
+		f, err = os.Create(abs)
+		if err != nil {
+			log.Printf("Problem opening %s: %v", abs, err)
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Error deleting file.\n")
+		}
 	}
 	defer f.Close()
 	defer func() {
