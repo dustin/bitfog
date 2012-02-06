@@ -40,21 +40,50 @@ func absolutize(path, subpath string) (string, *fileError) {
 }
 
 func doPut(abs string, w http.ResponseWriter, req *http.Request) {
-	f, err := os.Create(abs)
-	if err != nil {
-		os.MkdirAll(filepath.Dir(abs), 0777)
-		f, err = os.Create(abs)
+	ctype := req.Header.Get("Content-Type")
+	switch ctype {
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Invalid content type: %v.\n", ctype)
+		return
+	case "application/octet-stream":
+		os.RemoveAll(abs)
+		f, err := os.Create(abs)
 		if err != nil {
-			log.Printf("Problem opening %s: %v", abs, err)
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Error deleting file.\n")
+			os.MkdirAll(filepath.Dir(abs), 0777)
+			f, err = os.Create(abs)
+			if err != nil {
+				log.Printf("Problem opening %s: %v", abs, err)
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Error deleting file.\n")
+			}
 		}
+		defer f.Close()
+		defer func() {
+			log.Printf("Created file %s", abs)
+		}()
+		io.Copy(f, req.Body)
+	case "application/symlink":
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			log.Printf("Error reading symlink body.")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Error reading body.\n")
+		}
+		dest := string(body)
+		err = os.Symlink(dest, abs)
+		if err != nil {
+			os.MkdirAll(filepath.Dir(abs), 0777)
+			os.RemoveAll(abs)
+			err = os.Symlink(dest, abs)
+			if err != nil {
+				log.Printf("Problem symlinking %s: %v", abs, err)
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprintf(w, "Error deleting file.\n")
+			}
+		}
+		log.Printf("Created symlink: %v -> %v", abs, dest)
 	}
-	defer f.Close()
-	defer func() {
-		log.Printf("Created %s", abs)
-	}()
-	io.Copy(f, req.Body)
 	w.WriteHeader(204)
 }
 
@@ -176,12 +205,28 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 }
 
 func handleGet(conf itemConf, abs string, w http.ResponseWriter, req *http.Request) {
+	fi, err := os.Lstat(abs)
+	if err != nil {
+		log.Printf("Error getting file info file: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error getting file info.\n")
+		return
+	}
+
+	if isa(fi.Mode(), os.ModeSymlink) {
+		log.Printf("Trying to read a symlink at: %v", abs)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error getting file info.\n")
+		return
+	}
+
 	switch req.FormValue("rdiff") {
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid rdiff param: %v", req.FormValue("rdiff"))
 	case "":
 		log.Printf("Getting %s", abs)
+
 		f, err := os.Open(abs)
 		if err != nil {
 			log.Printf("Error opening file: %v", err)

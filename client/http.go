@@ -126,6 +126,7 @@ func uploadFile(src, dest string) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", "application/octet-stream")
 
 	c := http.Client{}
 	resp, err := c.Do(req)
