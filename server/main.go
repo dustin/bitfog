@@ -2,109 +2,94 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"hash/crc64"
-	"io"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-type FileData struct {
-	Name  string `json:"name"`
-	Size  int64  `json:"size"`
-	Mode  int32  `json:"mode"`
-	Mtime int64  `json:"mtime"`
-	Hash  uint64 `json:"hash,omitempty"`
-	Dest  string `json:"linkdest,omitempty"`
-}
+var paths = map[string]string{"tmp": "/tmp/"}
 
-var crcTable = crc64.MakeTable(crc64.ISO)
-
-var SkipFile = errors.New("Skip this file.")
-
-func computeHash(path string) uint64 {
-	f, err := os.Open(path)
-	if err != nil {
-		log.Printf("Error in crc: %v", err)
-		return 0
+func doIndex(w http.ResponseWriter, req *http.Request) {
+	log.Printf("Listing areas.")
+	keys := make([]string, len(paths)-1)
+	for k, _ := range paths {
+		keys = append(keys, k)
 	}
-	defer f.Close()
-	h := crc64.New(crcTable)
-	io.Copy(h, f)
-	return h.Sum64()
+	log.Printf("Stuff:  %#v, %#v", keys, paths)
+	json.NewEncoder(w).Encode(keys)
 }
 
-func isa(mode os.FileMode, seeking os.FileMode) bool {
-	return mode&seeking == seeking
+func notFoundPath(p string, w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(404)
+	fmt.Fprintf(w, "Path not found: %s\n", p)
 }
 
-func describe(p, fileName string, info os.FileInfo) (fd FileData, err error) {
-	fd.Name = fileName
-	fd.Size = info.Size()
-	fd.Mode = int32(info.Mode())
-	fd.Mtime = info.ModTime().Unix()
+func showPath(path, subpath string, w http.ResponseWriter, req *http.Request) {
+	if subpath == "" {
+		log.Printf("Listing %s", path)
+		listPath(path, w, req)
+	} else {
+		abs, err := filepath.Abs(filepath.Join(path, filepath.Clean(subpath)))
+		if err != nil {
+			log.Printf("Error canonicalizing path:  %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Something went wrong.  I think it was you.\n")
+			return
+		}
+		log.Printf("Showing %s under %s:  %s", subpath, path, abs)
+		if !strings.HasPrefix(abs, path) {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "No\n")
+			return
+		}
+
+		fi, err := os.Stat(abs)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Error retrieving file.\n")
+			return
+		}
+
+		if fi.IsDir() {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "That's not a file.\n")
+			return
+		}
+
+		http.ServeFile(w, req, filepath.Join(path, subpath))
+	}
+}
+
+func handler(w http.ResponseWriter, req *http.Request) {
+	parts := strings.SplitN(req.URL.Path[1:], "/", 2)
+	subpath := ""
+	if len(parts) > 1 {
+		subpath = parts[1]
+	}
+	path, foundPath := paths[parts[0]]
 
 	switch {
 	default:
-		fd.Hash = computeHash(p)
-	case isa(info.Mode(), os.ModeSymlink):
-		fd.Dest, err = os.Readlink(p)
-		if err != nil {
-			return
-		}
-	case isa(info.Mode(), os.ModeNamedPipe):
-		log.Printf("Ignoring named pipe:  %v", p)
-		return fd, SkipFile
-	case isa(info.Mode(), os.ModeSocket):
-		log.Printf("Ignoring socket:  %v", p)
-		return fd, SkipFile
-	}
-	return
-}
-
-func GenerateContent(w http.ResponseWriter, req *http.Request) {
-	walking := "/tmp/"
-	e := json.NewEncoder(w)
-
-	f := func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			log.Printf("Traversal error: %v", err)
-		}
-		if !info.IsDir() {
-			if !strings.HasPrefix(p, walking) {
-				log.Fatal("Dir doesn't have prefix: %s %s", p, walking)
-			}
-			fileName := p[len(walking):]
-
-			fd, err := describe(p, fileName, info)
-			switch err {
-			default:
-				log.Printf("Error describing file: %v", err)
-			case nil:
-				e.Encode(fd)
-			case SkipFile:
-				// Just skipping htis
-			}
-		}
-		return nil
-	}
-
-	filepath.Walk(walking, f)
-}
-
-func startWeb(addr string) {
-	http.HandleFunc("/content", GenerateContent)
-	log.Printf("Listening to web requests on %s", addr)
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		notFoundPath(parts[0], w, req)
+	case parts[0] == "":
+		doIndex(w, req)
+	case foundPath:
+		showPath(path, subpath, w, req)
 	}
 }
 
 func main() {
-	startWeb(":8675")
-	select {}
+	addr := ":8675"
+	s := &http.Server{
+		Addr:         addr,
+		Handler:      http.HandlerFunc(handler),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+	log.Printf("Listening to web requests on %s", addr)
+	log.Fatal(s.ListenAndServe())
 }
