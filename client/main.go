@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n")
 		fmt.Fprintf(os.Stderr, `
-  builddb url dbname  # build a database from the container URL
-  emptydb dbname      # build an empty database (representing blank dest)
+  builddb url dbname     # build a database from the container URL
+  emptydb dbname         # build an empty database (representing blank dest)
+  fetch destdb src path  # fetch the missing items into a temp dir
 `)
 		flag.PrintDefaults()
 
@@ -61,6 +63,52 @@ func emptydb() {
 	defer storage.Close()
 }
 
+func fetchTmp(path, src string, paths []string) error {
+	log.Printf("Fetching %d files", len(paths))
+
+	for _, fn := range paths {
+		log.Printf("  + %s", fn)
+		dest := filepath.Join(path, fn)
+		if err := downloadFile(src+fn, dest); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func fetch() {
+	if flag.NArg() < 4 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	destdb, srcurl, tmpPath := flag.Arg(1), flag.Arg(2), flag.Arg(3)
+
+	destData, err := openDb(destdb)
+	if err != nil {
+		log.Fatalf("Error reading DB:  %v", err)
+	}
+	defer destData.Close()
+
+	log.Printf("Read %d files", len(destData.files))
+
+	srcData, err := decodeURL(srcurl)
+	if err != nil {
+		log.Fatalf("Error reading from src: %s: %v", srcurl, err)
+	}
+
+	toadd, toremove := computeChanged(srcData, destData.files)
+
+	log.Printf("Need to add %d files, and remove %d", len(toadd), len(toremove))
+	err = fetchTmp(tmpPath, srcurl, toadd)
+	if err != nil {
+		log.Fatalf("Error downloading file: %v", err)
+	}
+	for _, fn := range toremove {
+		log.Printf("  - %s", fn)
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -76,5 +124,7 @@ func main() {
 		builddb()
 	case "emptydb":
 		emptydb()
+	case "fetch":
+		fetch()
 	}
 }

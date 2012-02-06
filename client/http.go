@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 type FileData struct {
@@ -60,4 +62,29 @@ func decodeURL(u string) (map[string]FileData, error) {
 		}
 	}
 	return rv, nil
+}
+
+func downloadFile(src, dest string) error {
+	resp, err := http.Get(src)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return errors.New(fmt.Sprintf("Error getting %s: %v", src, resp.Status))
+	}
+
+	f, err := os.Create(dest)
+	if err != nil {
+		os.MkdirAll(filepath.Dir(dest), 0777)
+		f, err = os.Create(dest)
+		if err != nil {
+			return err
+		}
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, resp.Body)
+	return err
 }
