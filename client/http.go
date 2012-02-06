@@ -109,7 +109,7 @@ func deleteFile(dest string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 204 {
 		return errors.New(resp.Status)
 	}
 	return nil
@@ -133,7 +133,7 @@ func uploadFile(src, dest string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 204 {
 		return errors.New(resp.Status)
 	}
 	return nil

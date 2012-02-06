@@ -55,6 +55,7 @@ func doPut(abs string, w http.ResponseWriter, req *http.Request) {
 		log.Printf("Created %s", abs)
 	}()
 	io.Copy(f, req.Body)
+	w.WriteHeader(204)
 }
 
 func doDelete(abs string, w http.ResponseWriter, req *http.Request) {
@@ -65,7 +66,7 @@ func doDelete(abs string, w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(w, "Error deleting file.\n")
 	}
 	log.Printf("Deleted %s", abs)
-
+	w.WriteHeader(204)
 }
 
 func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Request) {
