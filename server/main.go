@@ -27,6 +27,7 @@ func notFoundPath(p string, w http.ResponseWriter, req *http.Request) {
 }
 
 func handler(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
 	parts := strings.SplitN(req.URL.Path[1:], "/", 2)
 	subpath := ""
 	if len(parts) > 1 {

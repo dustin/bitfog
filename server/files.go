@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -25,20 +26,40 @@ func absolutize(path, subpath string) (string, *fileError) {
 		return "", &fileError{http.StatusBadRequest,
 			"Something went wrong, I think it was you"}
 	}
-	log.Printf("Showing %s under %s:  %s", subpath, path, abs)
 	if !strings.HasPrefix(abs, path) {
 		return "", &fileError{http.StatusBadRequest, "No"}
 	}
 
 	fi, err := os.Stat(abs)
-	if err != nil {
-		return "", &fileError{http.StatusBadRequest, "Error retrieving file."}
-	}
-
-	if fi.IsDir() {
+	if err == nil && fi.IsDir() {
 		return "", &fileError{http.StatusBadRequest, "That's not a file."}
 	}
 	return abs, nil
+}
+
+func doPut(abs string, w http.ResponseWriter, req *http.Request) {
+	f, err := os.Create(abs)
+	if err != nil {
+		log.Printf("Problem opening %s: %v", abs, err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error deleting file.\n")
+	}
+	defer f.Close()
+	defer func() {
+		log.Printf("Created %s", abs)
+	}()
+	io.Copy(f, req.Body)
+}
+
+func doDelete(abs string, w http.ResponseWriter, req *http.Request) {
+	err := os.Remove(abs)
+	if err != nil {
+		log.Printf("Error deleting:  %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error deleting file.\n")
+	}
+	log.Printf("Deleted %s", abs)
+
 }
 
 func showPath(path, subpath string, w http.ResponseWriter, req *http.Request) {
@@ -52,6 +73,16 @@ func showPath(path, subpath string, w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(w, "%s\n", err.msg)
 			return
 		}
-		http.ServeFile(w, req, abs)
+		switch req.Method {
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Fprintf(w, "Can't %s here.\n", req.Method)
+		case "GET":
+			http.ServeFile(w, req, abs)
+		case "PUT":
+			doPut(abs, w, req)
+		case "DELETE":
+			doDelete(abs, w, req)
+		}
 	}
 }
