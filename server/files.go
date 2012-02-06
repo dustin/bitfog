@@ -9,38 +9,49 @@ import (
 	"strings"
 )
 
+type fileError struct {
+	status int
+	msg    string
+}
+
+func (fe *fileError) Error() string {
+	return fe.msg
+}
+
+func absolutize(path, subpath string) (string, *fileError) {
+	abs, err := filepath.Abs(filepath.Join(path, filepath.Clean(subpath)))
+	if err != nil {
+		log.Printf("Error canonicalizing path:  %v", err)
+		return "", &fileError{http.StatusBadRequest,
+			"Something went wrong, I think it was you"}
+	}
+	log.Printf("Showing %s under %s:  %s", subpath, path, abs)
+	if !strings.HasPrefix(abs, path) {
+		return "", &fileError{http.StatusBadRequest, "No"}
+	}
+
+	fi, err := os.Stat(abs)
+	if err != nil {
+		return "", &fileError{http.StatusBadRequest, "Error retrieving file."}
+	}
+
+	if fi.IsDir() {
+		return "", &fileError{http.StatusBadRequest, "That's not a file."}
+	}
+	return abs, nil
+}
+
 func showPath(path, subpath string, w http.ResponseWriter, req *http.Request) {
 	if subpath == "" {
 		log.Printf("Listing %s", path)
 		listPath(path, w, req)
 	} else {
-		abs, err := filepath.Abs(filepath.Join(path, filepath.Clean(subpath)))
+		abs, err := absolutize(path, subpath)
 		if err != nil {
-			log.Printf("Error canonicalizing path:  %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Something went wrong.  I think it was you.\n")
+			w.WriteHeader(err.status)
+			fmt.Fprintf(w, "%s\n", err.msg)
 			return
 		}
-		log.Printf("Showing %s under %s:  %s", subpath, path, abs)
-		if !strings.HasPrefix(abs, path) {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "No\n")
-			return
-		}
-
-		fi, err := os.Stat(abs)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Error retrieving file.\n")
-			return
-		}
-
-		if fi.IsDir() {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "That's not a file.\n")
-			return
-		}
-
-		http.ServeFile(w, req, filepath.Join(path, subpath))
+		http.ServeFile(w, req, abs)
 	}
 }
