@@ -99,6 +99,15 @@ func fetch() {
 
 	toadd, toremove := computeChanged(srcData, destData.files)
 
+	err = os.RemoveAll(tmpPath)
+	if err != nil {
+		log.Fatalf("Error cleaning up tmp dir: %v", err)
+	}
+	err = os.Mkdir(tmpPath, 0777)
+	if err != nil {
+		log.Fatalf("Error recreating tmp dir: %v", err)
+	}
+
 	log.Printf("Need to add %d files, and remove %d", len(toadd), len(toremove))
 	err = fetchTmp(tmpPath, srcurl, toadd)
 	if err != nil {
