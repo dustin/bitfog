@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type FileData struct {
@@ -127,6 +128,25 @@ func uploadFile(src, dest string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
+
+	c := http.Client{}
+	resp, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 204 {
+		return errors.New(resp.Status)
+	}
+	return nil
+}
+
+func createSymlink(target, dest string) error {
+	req, err := http.NewRequest("PUT", dest, strings.NewReader(target))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/symlink")
 
 	c := http.Client{}
 	resp, err := c.Do(req)

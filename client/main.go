@@ -70,14 +70,16 @@ func emptydb() {
 	defer storage.Close()
 }
 
-func fetchTmp(path, src string, paths []string) error {
+func fetchTmp(path, src string, paths []string, fd map[string]FileData) error {
 	log.Printf("Fetching %d files", len(paths))
 
 	for _, fn := range paths {
-		log.Printf("  + %s", fn)
-		dest := filepath.Join(path, fn)
-		if err := downloadFile(src+fn, dest); err != nil {
-			return err
+		if fd[fn].Dest == "" {
+			log.Printf("  + %s", fn)
+			dest := filepath.Join(path, fn)
+			if err := downloadFile(src+fn, dest); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -116,7 +118,7 @@ func fetch() {
 	}
 
 	log.Printf("Need to add %d files, and remove %d", len(toadd), len(toremove))
-	err = fetchTmp(tmpPath, srcurl, toadd)
+	err = fetchTmp(tmpPath, srcurl, toadd, srcData)
 	if err != nil {
 		log.Fatalf("Error downloading file: %v", err)
 	}
@@ -162,7 +164,11 @@ func store() {
 	for _, fn := range toadd {
 		log.Printf(" + %s", fn)
 		src := filepath.Join(tmpPath, fn)
-		err = uploadFile(src, desturl+fn)
+		if srcData.files[fn].Dest == "" {
+			err = uploadFile(src, desturl+fn)
+		} else {
+			err = createSymlink(srcData.files[fn].Dest, desturl+fn)
+		}
 		if err != nil {
 			if !(err.(*os.PathError).Err == os.ENOENT) {
 				log.Fatalf("Error uploading %s: %#v", fn, err)
