@@ -170,7 +170,7 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 			fmt.Fprintf(w, "Error moving file into place")
 		}
 
-		w.WriteHeader(200)
+		w.WriteHeader(204)
 	}
 }
 
