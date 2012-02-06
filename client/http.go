@@ -56,6 +56,9 @@ func decodeURL(u string) (map[string]FileData, error) {
 		default:
 			return rv, errors.New(fmt.Sprintf("Error decoding: %v", err))
 		case nil:
+			if verbose {
+				fmt.Printf(" got %#v\n", fd)
+			}
 			rv[fd.Name] = FileData{
 				Size:  fd.Size,
 				Mode:  fd.Mode,

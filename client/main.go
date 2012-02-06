@@ -16,9 +16,16 @@ func init() {
   emptydb dbname         # build an empty database (representing blank dest)
   fetch destdb src path  # fetch the missing items into a temp dir
   store srcdb dest path  # store fetched things into the dest
+
 `)
 		flag.PrintDefaults()
 	}
+}
+
+var verbose bool
+
+func init() {
+	flag.BoolVar(&verbose, "verbose", false, "verbose output")
 }
 
 func dbFromURL(u, path string) error {
