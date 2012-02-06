@@ -19,6 +19,7 @@ type itemConf struct {
 var paths = make(map[string]itemConf)
 
 func doIndex(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	log.Printf("Listing areas.")
 	keys := []string{}
 	for k, _ := range paths {

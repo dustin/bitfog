@@ -215,6 +215,7 @@ func handleGet(conf itemConf, abs string, w http.ResponseWriter, req *http.Reque
 func handlePath(conf itemConf, subpath string, w http.ResponseWriter, req *http.Request) {
 	if subpath == "" {
 		log.Printf("Listing %s", conf.Path)
+		w.Header().Set("Content-Type", "application/json")
 		listPath(conf, w, req)
 	} else {
 		abs, err := absolutize(conf.Path, subpath)
@@ -223,6 +224,7 @@ func handlePath(conf itemConf, subpath string, w http.ResponseWriter, req *http.
 			fmt.Fprintf(w, "%s\n", err.msg)
 			return
 		}
+		w.Header().Set("Content-Type", "application/octet-stream")
 		switch req.Method {
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
