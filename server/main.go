@@ -9,7 +9,12 @@ import (
 	"time"
 )
 
-var paths = map[string]string{"tmp": "/tmp/"}
+type itemConf struct {
+	Path     string
+	Writable bool
+}
+
+var paths = map[string]itemConf{"tmp": {"/tmp/", false}}
 
 func doIndex(w http.ResponseWriter, req *http.Request) {
 	log.Printf("Listing areas.")

@@ -62,12 +62,12 @@ func doDelete(abs string, w http.ResponseWriter, req *http.Request) {
 
 }
 
-func showPath(path, subpath string, w http.ResponseWriter, req *http.Request) {
+func showPath(conf itemConf, subpath string, w http.ResponseWriter, req *http.Request) {
 	if subpath == "" {
-		log.Printf("Listing %s", path)
-		listPath(path, w, req)
+		log.Printf("Listing %s", conf.Path)
+		listPath(conf.Path, w, req)
 	} else {
-		abs, err := absolutize(path, subpath)
+		abs, err := absolutize(conf.Path, subpath)
 		if err != nil {
 			w.WriteHeader(err.status)
 			fmt.Fprintf(w, "%s\n", err.msg)
@@ -80,9 +80,19 @@ func showPath(path, subpath string, w http.ResponseWriter, req *http.Request) {
 		case "GET":
 			http.ServeFile(w, req, abs)
 		case "PUT":
-			doPut(abs, w, req)
+			if conf.Writable {
+				doPut(abs, w, req)
+			} else {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				fmt.Fprintf(w, "Can't %s here.\n", req.Method)
+			}
 		case "DELETE":
-			doDelete(abs, w, req)
+			if conf.Writable {
+				doDelete(abs, w, req)
+			} else {
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				fmt.Fprintf(w, "Can't %s here.\n", req.Method)
+			}
 		}
 	}
 }
