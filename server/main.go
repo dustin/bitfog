@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 type itemConf struct {
@@ -73,10 +72,8 @@ func main() {
 	loadConf(*confFile)
 
 	s := &http.Server{
-		Addr:         *addr,
-		Handler:      http.HandlerFunc(handler),
-		ReadTimeout:  10 * time.Minute,
-		WriteTimeout: 10 * time.Minute,
+		Addr:    *addr,
+		Handler: http.HandlerFunc(handler),
 	}
 	log.Printf("Listening to web requests on %s", *addr)
 	log.Fatal(s.ListenAndServe())
