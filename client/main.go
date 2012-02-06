@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -10,7 +9,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 )
 
 type FileData struct {
@@ -19,37 +17,6 @@ type FileData struct {
 	Mtime int64  `json:"mtime"`
 	Hash  uint64 `json:"hash,omitempty"`
 	Dest  string `json:"linkdest,omitempty"`
-}
-
-type db struct {
-	path string
-
-	files map[string]FileData
-}
-
-func (d *db) AddFile(name string, fd FileData) error {
-	d.files[name] = fd
-	return nil
-}
-
-func (d *db) RmFile(name string) error {
-	delete(d.files, name)
-	return nil
-}
-
-func (d *db) Close() error {
-	f, err := os.Create(d.path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return gob.NewEncoder(f).Encode(d.files)
-}
-
-func newDb(path string) (db, error) {
-	return db{path: path,
-		files: make(map[string]FileData),
-	}, nil
 }
 
 func decodeURL(u string) (map[string]FileData, error) {
