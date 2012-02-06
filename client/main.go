@@ -14,7 +14,6 @@ import (
 )
 
 type FileData struct {
-	Name  string `json:"name"`
 	Size  int64  `json:"size"`
 	Mode  int32  `json:"mode"`
 	Mtime int64  `json:"mtime"`
@@ -28,8 +27,8 @@ type db struct {
 	files map[string]FileData
 }
 
-func (d *db) AddFile(fd FileData) error {
-	d.files[fd.Name] = fd
+func (d *db) AddFile(name string, fd FileData) error {
+	d.files[name] = fd
 	return nil
 }
 
@@ -53,8 +52,8 @@ func newDb(path string) (db, error) {
 	}, nil
 }
 
-func decodeURL(u string) ([]FileData, error) {
-	rv := []FileData{}
+func decodeURL(u string) (map[string]FileData, error) {
+	rv := map[string]FileData{}
 
 	resp, err := http.Get(u)
 	if err != nil {
@@ -70,13 +69,27 @@ func decodeURL(u string) ([]FileData, error) {
 
 	done := false
 	for !done {
-		fd := FileData{}
+		type fdata struct {
+			Name  string `json:"name"`
+			Size  int64  `json:"size"`
+			Mode  int32  `json:"mode"`
+			Mtime int64  `json:"mtime"`
+			Hash  uint64 `json:"hash,omitempty"`
+			Dest  string `json:"linkdest,omitempty"`
+		}
+		fd := fdata{}
 		err = d.Decode(&fd)
 		switch err {
 		default:
 			return rv, errors.New(fmt.Sprintf("Error decoding: %v", err))
 		case nil:
-			rv = append(rv, fd)
+			rv[fd.Name] = FileData{
+				Size:  fd.Size,
+				Mode:  fd.Mode,
+				Mtime: fd.Mtime,
+				Hash:  fd.Hash,
+				Dest:  fd.Dest,
+			}
 		case io.EOF:
 			done = true
 		}
@@ -96,8 +109,8 @@ func dbFromURL(u, path string) error {
 	}
 	defer storage.Close()
 
-	for _, fd := range data {
-		storage.AddFile(fd)
+	for fn, fd := range data {
+		storage.AddFile(fn, fd)
 	}
 
 	return nil
