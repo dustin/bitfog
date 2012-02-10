@@ -3,7 +3,7 @@
 *.a
 *.db
 *~
-/client/bitfog
-/server/bitfogserv
+/client/client
+/server/server
 6.out
 _*
