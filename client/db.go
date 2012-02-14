@@ -3,16 +3,18 @@ package main
 import (
 	"encoding/gob"
 	"os"
+
+	"github.com/dustin/bitfog"
 )
 
 type db struct {
 	path    string
 	changed bool
 
-	files map[string]FileData
+	files map[string]bitfog.FileData
 }
 
-func (d *db) AddFile(name string, fd FileData) error {
+func (d *db) AddFile(name string, fd bitfog.FileData) error {
 	d.files[name] = fd
 	d.changed = true
 	return nil
@@ -39,12 +41,12 @@ func (d *db) Close() error {
 func newDb(path string) (db, error) {
 	return db{path: path,
 		changed: true,
-		files:   make(map[string]FileData),
+		files:   make(map[string]bitfog.FileData),
 	}, nil
 }
 
 func openDb(path string) (db, error) {
-	rv := db{path: path, files: make(map[string]FileData)}
+	rv := db{path: path, files: make(map[string]bitfog.FileData)}
 	f, err := os.Open(path)
 	if err != nil {
 		return rv, nil

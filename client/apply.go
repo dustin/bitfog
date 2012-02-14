@@ -2,10 +2,12 @@ package main
 
 import (
 	"sort"
+
+	"github.com/dustin/bitfog"
 )
 
 // List of files that need to be added, removed.
-func computeChanged(src, dest map[string]FileData) ([]string, []string) {
+func computeChanged(src, dest map[string]bitfog.FileData) ([]string, []string) {
 	toadd, toremove := []string{}, []string{}
 
 	for k := range dest {
@@ -33,7 +35,7 @@ func computeChanged(src, dest map[string]FileData) ([]string, []string) {
 
 type filenames struct {
 	names []string
-	data  map[string]FileData
+	data  map[string]bitfog.FileData
 }
 
 func (f *filenames) Len() int {

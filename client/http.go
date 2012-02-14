@@ -10,24 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/dustin/bitfog"
 )
 
-type FileData struct {
-	Size  int64  `json:"size"`
-	Mode  int32  `json:"mode"`
-	Mtime int64  `json:"mtime"`
-	Hash  uint64 `json:"hash,omitempty"`
-	Dest  string `json:"linkdest,omitempty"`
-}
-
-func (fd FileData) Equals(other FileData) bool {
-	return fd.Size == other.Size &&
-		fd.Hash == other.Hash &&
-		fd.Dest == other.Dest
-}
-
-func decodeURL(u string) (map[string]FileData, error) {
-	rv := map[string]FileData{}
+func decodeURL(u string) (map[string]bitfog.FileData, error) {
+	rv := map[string]bitfog.FileData{}
 
 	resp, err := http.Get(u)
 	if err != nil {
@@ -60,7 +48,7 @@ func decodeURL(u string) (map[string]FileData, error) {
 			if verbose {
 				fmt.Printf(" got %#v\n", fd)
 			}
-			rv[fd.Name] = FileData{
+			rv[fd.Name] = bitfog.FileData{
 				Size:  fd.Size,
 				Mode:  fd.Mode,
 				Mtime: fd.Mtime,

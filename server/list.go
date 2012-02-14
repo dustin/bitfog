@@ -11,16 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-)
 
-type FileData struct {
-	Name  string `json:"name"`
-	Size  int64  `json:"size"`
-	Mode  int32  `json:"mode"`
-	Mtime int64  `json:"mtime"`
-	Hash  uint64 `json:"hash,omitempty"`
-	Dest  string `json:"linkdest,omitempty"`
-}
+	"github.com/dustin/bitfog"
+)
 
 var crcTable = crc64.MakeTable(crc64.ISO)
 
@@ -44,7 +37,7 @@ func isa(mode os.FileMode, seeking os.FileMode) bool {
 	return mode&seeking == seeking
 }
 
-func describe(p, fileName string, info os.FileInfo, checksum bool) (fd FileData, err error) {
+func describe(p, fileName string, info os.FileInfo, checksum bool) (fd bitfog.FileData, err error) {
 	fd.Name = fileName
 	fd.Size = info.Size()
 	fd.Mode = int32(info.Mode())

@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/dustin/bitfog"
 )
 
 func init() {
@@ -70,7 +72,7 @@ func emptydb() {
 	defer storage.Close()
 }
 
-func fetchTmp(path, src string, paths []string, fd map[string]FileData) error {
+func fetchTmp(path, src string, paths []string, fd map[string]bitfog.FileData) error {
 	log.Printf("Fetching %d files", len(paths))
 
 	for _, fn := range paths {
