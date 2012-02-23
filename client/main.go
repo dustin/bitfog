@@ -172,8 +172,7 @@ func store() {
 			err = createSymlink(srcData.files[fn].Dest, desturl+fn)
 		}
 		if err != nil {
-			pe, isPathError := err.(*os.PathError)
-			if !(isPathError && pe.Err == os.ErrNotExist) {
+			if !os.IsNotExist(err) {
 				log.Fatalf("Error uploading %s: %#v", fn, err)
 			}
 		}
