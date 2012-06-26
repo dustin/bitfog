@@ -40,6 +40,7 @@ func absolutize(path, subpath string) (string, *fileError) {
 }
 
 func doPut(abs string, w http.ResponseWriter, req *http.Request) {
+	log.Printf("Writing %v", abs)
 	ctype := req.Header.Get("Content-Type")
 	switch ctype {
 	default:
