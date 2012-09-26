@@ -76,7 +76,7 @@ func listPath(conf itemConf, w http.ResponseWriter, req *http.Request) {
 		}
 		if !info.IsDir() {
 			if !strings.HasPrefix(p, walking) {
-				log.Fatal("Dir doesn't have prefix: %s %s", p, walking)
+				log.Fatalf("Dir doesn't have prefix: %s %s", p, walking)
 			}
 			fileName := p[len(walking):]
 
