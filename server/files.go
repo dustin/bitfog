@@ -60,9 +60,7 @@ func doPut(abs string, w http.ResponseWriter, req *http.Request) {
 			}
 		}
 		defer f.Close()
-		defer func() {
-			log.Printf("Created file %s", abs)
-		}()
+		defer log.Printf("Created file %s", abs)
 		io.Copy(f, req.Body)
 	case "application/symlink":
 		body, err := ioutil.ReadAll(req.Body)
@@ -117,7 +115,7 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 			return
 		}
 		defer f.Close()
-		defer func() { os.Remove(f.Name()) }()
+		defer os.Remove(f.Name())
 		_, err = io.Copy(f, req.Body)
 		if err != nil {
 			log.Printf("Error writing to tmp file %v", err)
@@ -156,7 +154,7 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 			return
 		}
 		defer f.Close()
-		defer func() { os.Remove(f.Name()) }()
+		defer os.Remove(f.Name())
 
 		_, err = io.Copy(f, req.Body)
 		if err != nil {
@@ -174,7 +172,7 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 			return
 		}
 		defer fout.Close()
-		defer func() { os.Remove(fout.Name()) }()
+		defer os.Remove(fout.Name())
 
 		cmd := exec.Command("rdiff", mode, abs, f.Name())
 		cmd.Stdout = fout
