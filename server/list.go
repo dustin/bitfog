@@ -17,7 +17,8 @@ import (
 
 var crcTable = crc64.MakeTable(crc64.ISO)
 
-var SkipFile = errors.New("Skip this file.")
+// ErrSkipFile should be returned whenever a file should be skipped.
+var ErrSkipFile = errors.New("skip this file")
 
 var flushInterval = (time.Duration(10) * time.Second)
 
@@ -55,10 +56,10 @@ func describe(p, fileName string, info os.FileInfo, checksum bool) (fd bitfog.Fi
 		}
 	case isa(info.Mode(), os.ModeNamedPipe):
 		log.Printf("Ignoring named pipe:  %v", p)
-		return fd, SkipFile
+		return fd, ErrSkipFile
 	case isa(info.Mode(), os.ModeSocket):
 		log.Printf("Ignoring socket:  %v", p)
-		return fd, SkipFile
+		return fd, ErrSkipFile
 	}
 	return
 }
@@ -90,7 +91,7 @@ func listPath(conf itemConf, w http.ResponseWriter, req *http.Request) {
 					flusher.Flush()
 					nextFlush = time.Now().Add(flushInterval)
 				}
-			case SkipFile:
+			case ErrSkipFile:
 				// Just skipping htis
 			}
 		}

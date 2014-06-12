@@ -1,5 +1,6 @@
 package bitfog
 
+// FileData represents all the common metadata for a file.
 type FileData struct {
 	Name  string `json:"name,omitempty"`
 	Size  int64  `json:"size"`
@@ -9,6 +10,7 @@ type FileData struct {
 	Dest  string `json:"linkdest,omitempty"`
 }
 
+// Equals reports whether a FileData object references the same file as another.
 func (fd FileData) Equals(other FileData) bool {
 	return fd.Size == other.Size &&
 		fd.Hash == other.Hash &&

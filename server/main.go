@@ -22,7 +22,7 @@ func doIndex(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	log.Printf("Listing areas.")
 	keys := []string{}
-	for k, _ := range paths {
+	for k := range paths {
 		keys = append(keys, k)
 	}
 	log.Printf("Stuff:  %#v, %#v", keys, paths)

@@ -22,7 +22,7 @@ func decodeURL(u string) (map[string]bitfog.FileData, error) {
 		return rv, err
 	}
 	if resp.StatusCode != 200 {
-		return rv, errors.New(fmt.Sprintf("Error httping: %v", resp.Status))
+		return rv, fmt.Errorf("error httping: %v", resp.Status)
 	}
 	defer resp.Body.Close()
 	r := bufio.NewReader(resp.Body)
@@ -43,7 +43,7 @@ func decodeURL(u string) (map[string]bitfog.FileData, error) {
 		err = d.Decode(&fd)
 		switch err {
 		default:
-			return rv, errors.New(fmt.Sprintf("Error decoding: %v", err))
+			return rv, fmt.Errorf("error decoding: %v", err)
 		case nil:
 			if verbose {
 				fmt.Printf(" got %#v\n", fd)
@@ -70,7 +70,7 @@ func downloadFile(src, dest string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return errors.New(fmt.Sprintf("Error getting %s: %v", src, resp.Status))
+		return fmt.Errorf("error getting %s: %v", src, resp.Status)
 	}
 
 	f, err := os.Create(dest)
