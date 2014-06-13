@@ -69,7 +69,12 @@ func listPath(conf itemConf, w http.ResponseWriter, req *http.Request) {
 
 	walking := conf.Path
 	flusher, isFlusher := w.(http.Flusher)
-	nextFlush := time.Now().Add(flushInterval)
+	var flushCh <-chan time.Time
+	if isFlusher {
+		timer := time.NewTicker(flushInterval)
+		flushCh = timer.C
+		defer timer.Stop()
+	}
 
 	f := func(p string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -87,9 +92,10 @@ func listPath(conf itemConf, w http.ResponseWriter, req *http.Request) {
 				log.Printf("Error describing file: %v", err)
 			case nil:
 				e.Encode(fd)
-				if isFlusher && time.Now().After(nextFlush) {
+				select {
+				case <-flushCh:
 					flusher.Flush()
-					nextFlush = time.Now().Add(flushInterval)
+				default:
 				}
 			case ErrSkipFile:
 				// Just skipping htis
