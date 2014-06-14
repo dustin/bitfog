@@ -27,15 +27,16 @@ func (d *db) RmFile(name string) error {
 }
 
 func (d *db) Close() error {
-	if d.changed {
-		f, err := os.Create(d.path)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		return gob.NewEncoder(f).Encode(d.files)
+	if !d.changed {
+		return nil
 	}
-	return nil
+
+	f, err := os.Create(d.path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return gob.NewEncoder(f).Encode(d.files)
 }
 
 func newDb(path string) (db, error) {
