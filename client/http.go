@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dustin/bitfog"
+	"github.com/dustin/httputil"
 )
 
 type bitfogClient struct {
@@ -29,7 +29,7 @@ func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
 		return rv, err
 	}
 	if resp.StatusCode != 200 {
-		return rv, fmt.Errorf("error httping: %v", resp.Status)
+		return rv, httputil.HTTPErrorf(resp, "Error fetching %v - %S\n%B", u)
 	}
 	defer resp.Body.Close()
 
@@ -40,7 +40,7 @@ func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
 		err = d.Decode(&fd)
 		switch err {
 		default:
-			return rv, fmt.Errorf("error decoding: %v", err)
+			return rv, fmt.Errorf("error decoding %v: %v", u, err)
 		case nil:
 			rv[fd.Name] = fd
 		case io.EOF:
@@ -57,7 +57,7 @@ func (c *bitfogClient) downloadFile(src, dest string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("error getting %s: %v", src, resp.Status)
+		return httputil.HTTPErrorf(resp, "error getting %v - %S\n%B", src)
 	}
 
 	f, err := os.Create(dest)
@@ -85,7 +85,7 @@ func (c *bitfogClient) deleteFile(dest string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 204 {
-		return errors.New(resp.Status)
+		return httputil.HTTPError(resp)
 	}
 	return nil
 }
@@ -109,7 +109,7 @@ func (c *bitfogClient) uploadFile(src, dest string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 204 {
-		return errors.New(resp.Status)
+		return httputil.HTTPError(resp)
 	}
 	return nil
 }
@@ -127,7 +127,7 @@ func (c *bitfogClient) createSymlink(target, dest string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 204 {
-		return errors.New(resp.Status)
+		return httputil.HTTPError(resp)
 	}
 	return nil
 }
