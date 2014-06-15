@@ -14,10 +14,18 @@ import (
 	"github.com/dustin/bitfog"
 )
 
-func decodeURL(u string) (map[string]bitfog.FileData, error) {
+type bitfogClient struct {
+	client *http.Client
+}
+
+func newBitfogClient() *bitfogClient {
+	return &bitfogClient{&http.Client{}}
+}
+
+func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
 	rv := map[string]bitfog.FileData{}
 
-	resp, err := http.Get(u)
+	resp, err := c.client.Get(u)
 	if err != nil {
 		return rv, err
 	}
@@ -62,8 +70,8 @@ func decodeURL(u string) (map[string]bitfog.FileData, error) {
 	return rv, nil
 }
 
-func downloadFile(src, dest string) error {
-	resp, err := http.Get(src)
+func (c *bitfogClient) downloadFile(src, dest string) error {
+	resp, err := c.client.Get(src)
 	if err != nil {
 		return err
 	}
@@ -87,13 +95,12 @@ func downloadFile(src, dest string) error {
 	return err
 }
 
-func deleteFile(dest string) error {
+func (c *bitfogClient) deleteFile(dest string) error {
 	req, err := http.NewRequest("DELETE", dest, nil)
 	if err != nil {
 		return err
 	}
-	c := http.Client{}
-	resp, err := c.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -104,7 +111,7 @@ func deleteFile(dest string) error {
 	return nil
 }
 
-func uploadFile(src, dest string) error {
+func (c *bitfogClient) uploadFile(src, dest string) error {
 	srcfile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -117,8 +124,7 @@ func uploadFile(src, dest string) error {
 	}
 	req.Header.Set("Content-Type", "application/octet-stream")
 
-	c := http.Client{}
-	resp, err := c.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -129,15 +135,14 @@ func uploadFile(src, dest string) error {
 	return nil
 }
 
-func createSymlink(target, dest string) error {
+func (c *bitfogClient) createSymlink(target, dest string) error {
 	req, err := http.NewRequest("PUT", dest, strings.NewReader(target))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/symlink")
 
-	c := http.Client{}
-	resp, err := c.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}

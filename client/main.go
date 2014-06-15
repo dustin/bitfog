@@ -25,13 +25,14 @@ func init() {
 }
 
 var verbose bool
+var client = newBitfogClient()
 
 func init() {
 	flag.BoolVar(&verbose, "verbose", false, "verbose output")
 }
 
 func dbFromURL(u, path string) error {
-	data, err := decodeURL(u)
+	data, err := client.decodeURL(u)
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func fetchTmp(path, src string, paths []string, fd map[string]bitfog.FileData) e
 		if fd[fn].Dest == "" {
 			log.Printf("  + %s", fn)
 			dest := filepath.Join(path, fn)
-			if err := downloadFile(src+fn, dest); err != nil {
+			if err := client.downloadFile(src+fn, dest); err != nil {
 				return err
 			}
 		}
@@ -103,7 +104,7 @@ func fetch() {
 
 	log.Printf("Read %d files", len(destData.files))
 
-	srcData, err := decodeURL(srcurl)
+	srcData, err := client.decodeURL(srcurl)
 	if err != nil {
 		log.Fatalf("Error reading from src: %s: %v", srcurl, err)
 	}
@@ -145,7 +146,7 @@ func store() {
 
 	log.Printf("Read %d files", len(srcData.files))
 
-	destData, err := decodeURL(desturl)
+	destData, err := client.decodeURL(desturl)
 	if err != nil {
 		log.Fatalf("Error reading from dest: %s: %v", desturl, err)
 	}
@@ -157,7 +158,7 @@ func store() {
 
 	for _, fn := range toremove {
 		log.Printf(" - %s", fn)
-		err = deleteFile(desturl + fn)
+		err = client.deleteFile(desturl + fn)
 		if err != nil {
 			log.Fatalf("Error deleting %s: %v", fn, err)
 		}
@@ -167,9 +168,9 @@ func store() {
 		log.Printf(" + %s", fn)
 		src := filepath.Join(tmpPath, fn)
 		if srcData.files[fn].Dest == "" {
-			err = uploadFile(src, desturl+fn)
+			err = client.uploadFile(src, desturl+fn)
 		} else {
-			err = createSymlink(srcData.files[fn].Dest, desturl+fn)
+			err = client.createSymlink(srcData.files[fn].Dest, desturl+fn)
 		}
 		if err != nil {
 			if !os.IsNotExist(err) {
