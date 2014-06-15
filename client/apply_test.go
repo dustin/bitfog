@@ -102,3 +102,43 @@ func TestFilenamesDiffing(t *testing.T) {
 		}
 	}
 }
+
+func TestFilenamesSorting(t *testing.T) {
+	fns := filenames{
+		[]string{"a", "b", "c"},
+		map[string]bitfog.FileData{
+			"a": bitfog.FileData{Size: 75278, Hash: 75589},
+			"b": bitfog.FileData{Size: 28398, Hash: 00024},
+		},
+	}
+
+	tests := []struct {
+		i, j int
+		exp  bool
+	}{
+		{0, 1, true},
+		{1, 0, false},
+		{1, 2, false},
+		{2, 1, false},
+	}
+
+	if fns.Len() != 3 {
+		t.Errorf("Expected three names, got %v", fns.Len())
+	}
+
+	for _, test := range tests {
+		got := fns.Less(test.i, test.j)
+		if got != test.exp {
+			t.Errorf("Expected less=%v for %v,%v, got %v",
+				test.exp, test.i, test.j, got)
+		}
+	}
+
+	fns.Swap(0, 1)
+	if fns.names[0] != "b" {
+		t.Errorf("Expected 0 to be b, got %v", fns.names[0])
+	}
+	if fns.names[1] != "a" {
+		t.Errorf("Expected 0 to be a, got %v", fns.names[1])
+	}
+}
