@@ -99,3 +99,29 @@ func TestDecodePartialSuccess(t *testing.T) {
 		}
 	}
 }
+
+func TestDeleteFile(t *testing.T) {
+	c := fakeClient(204, "")
+	err := c.deleteFile("http://whatever/x")
+	if err != nil {
+		t.Errorf("Error trying delete: %v", err)
+	}
+
+	c = fakeClient(500, "")
+	err = c.deleteFile("http://whatever/x")
+	if err == nil {
+		t.Errorf("expected 500 error, but succeeded")
+	}
+
+	c = brokenClient()
+	err = c.deleteFile("http://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error deleting, but succeeded")
+	}
+
+	c = brokenClient()
+	err = c.deleteFile("://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error deleting, but succeeded")
+	}
+}
