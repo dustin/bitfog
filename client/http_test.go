@@ -125,3 +125,29 @@ func TestDeleteFile(t *testing.T) {
 		t.Errorf("Expected error deleting, but succeeded")
 	}
 }
+
+func TestCreateSymlink(t *testing.T) {
+	c := fakeClient(204, "")
+	err := c.createSymlink("y", "http://whatever/x")
+	if err != nil {
+		t.Errorf("Error trying to create symlink: %v", err)
+	}
+
+	c = brokenClient()
+	err = c.createSymlink("y", "://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error creating symlink, but succeeded")
+	}
+
+	c = fakeClient(500, "")
+	err = c.createSymlink("y", "http://whatever/x")
+	if err == nil {
+		t.Errorf("expected 500 error, but succeeded")
+	}
+
+	c = fakeClient(204, "")
+	err = c.createSymlink("y", "http://whatever/x")
+	if err != nil {
+		t.Errorf("expected success error, but errored: %v", err)
+	}
+}
