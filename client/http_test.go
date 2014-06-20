@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/dustin/bitfog"
@@ -149,5 +151,99 @@ func TestCreateSymlink(t *testing.T) {
 	err = c.createSymlink("y", "http://whatever/x")
 	if err == nil {
 		t.Errorf("expected 500 error, but succeeded")
+	}
+}
+
+var errNoMore = errors.New("exhausted mocks are exhausted")
+
+func mkFakeOps(creates []struct {
+	wc  io.WriteCloser
+	err error
+},
+	opens []struct {
+		rc  io.ReadCloser
+		err error
+	},
+	mkdirs []error) fsOps {
+
+	return fsOps{
+		func(string) (io.WriteCloser, error) {
+			if len(creates) == 0 {
+				return nil, errNoMore
+			}
+			el := creates[0]
+			creates = creates[1:]
+			return el.wc, el.err
+		},
+		func(string) (io.ReadCloser, error) {
+			if len(opens) == 0 {
+				return nil, errNoMore
+			}
+			el := opens[0]
+			opens = opens[1:]
+			return el.rc, el.err
+		},
+		func(string, os.FileMode) error {
+			if len(mkdirs) == 0 {
+				return errNoMore
+			}
+			el := mkdirs[0]
+			mkdirs = mkdirs[1:]
+			return el
+		},
+	}
+}
+
+type nopWriteCloser struct {
+	io.Writer
+}
+
+func (n nopWriteCloser) Close() error {
+	return nil
+}
+
+func TestDownload(t *testing.T) {
+	c := fakeClient(500, "")
+	err := c.downloadFile("http://whatever/x", "/tmp/some/path")
+	if err == nil {
+		t.Errorf("Expected error downloading")
+	}
+
+	c = brokenClient()
+	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
+	if err == nil {
+		t.Errorf("Expected error downloading")
+	}
+
+	c = fakeClient(200, "content")
+	c.fs = mkFakeOps(
+		[]struct {
+			wc  io.WriteCloser
+			err error
+		}{
+			{nil, errors.New("nope")},
+			{nil, errors.New("nope")},
+		},
+		nil,
+		[]error{nil})
+	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
+	if err == nil {
+		t.Errorf("Expected error trying to make dirs %v", err)
+	}
+
+	c = fakeClient(200, "content")
+	c.fs = mkFakeOps(
+		[]struct {
+			wc  io.WriteCloser
+			err error
+		}{
+			{nil, errors.New("nope")},
+			{nopWriteCloser{ioutil.Discard}, nil},
+		},
+		nil,
+		[]error{nil})
+	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
+	if err != nil {
+		t.Errorf("Expected no error downloading, got %v", err)
 	}
 }
