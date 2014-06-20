@@ -29,11 +29,11 @@ func (c *constantTransport) RoundTrip(*http.Request) (*http.Response, error) {
 }
 
 func fakeClient(status int, body string) *bitfogClient {
-	return &bitfogClient{&http.Client{Transport: &constantTransport{status, []byte(body)}}}
+	return &bitfogClient{&http.Client{Transport: &constantTransport{status, []byte(body)}}, posixFsOps}
 }
 
 func brokenClient() *bitfogClient {
-	return &bitfogClient{&http.Client{Transport: (*constantTransport)(nil)}}
+	return &bitfogClient{&http.Client{Transport: (*constantTransport)(nil)}, posixFsOps}
 }
 
 func TestDecodeFail(t *testing.T) {

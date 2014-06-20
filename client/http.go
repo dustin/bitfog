@@ -13,12 +13,29 @@ import (
 	"github.com/dustin/httputil"
 )
 
+type fsOps struct {
+	Create   func(string) (io.WriteCloser, error)
+	Open     func(string) (io.ReadCloser, error)
+	MkdirAll func(string, os.FileMode) error
+}
+
 type bitfogClient struct {
 	client *http.Client
+	fs     fsOps
+}
+
+var posixFsOps = fsOps{
+	func(s string) (io.WriteCloser, error) {
+		return os.Create(s)
+	},
+	func(s string) (io.ReadCloser, error) {
+		return os.Open(s)
+	},
+	os.MkdirAll,
 }
 
 func newBitfogClient() *bitfogClient {
-	return &bitfogClient{&http.Client{}}
+	return &bitfogClient{&http.Client{}, posixFsOps}
 }
 
 func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
@@ -60,10 +77,10 @@ func (c *bitfogClient) downloadFile(src, dest string) error {
 		return httputil.HTTPErrorf(resp, "error getting %v - %S\n%B", src)
 	}
 
-	f, err := os.Create(dest)
+	f, err := c.fs.Create(dest)
 	if err != nil {
-		os.MkdirAll(filepath.Dir(dest), 0777)
-		f, err = os.Create(dest)
+		c.fs.MkdirAll(filepath.Dir(dest), 0777)
+		f, err = c.fs.Create(dest)
 		if err != nil {
 			return err
 		}
@@ -91,7 +108,7 @@ func (c *bitfogClient) deleteFile(dest string) error {
 }
 
 func (c *bitfogClient) uploadFile(src, dest string) error {
-	srcfile, err := os.Open(src)
+	srcfile, err := c.fs.Open(src)
 	if err != nil {
 		return err
 	}
