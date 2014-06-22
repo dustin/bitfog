@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/dustin/bitfog"
@@ -245,5 +246,77 @@ func TestDownload(t *testing.T) {
 	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
 	if err != nil {
 		t.Errorf("Expected no error downloading, got %v", err)
+	}
+}
+
+func TestUpload(t *testing.T) {
+	c := fakeClient(500, "")
+	c.fs = mkFakeOps(nil,
+		[]struct {
+			rc  io.ReadCloser
+			err error
+		}{
+			{nil, errors.New("nope")},
+		},
+		nil)
+	err := c.uploadFile("/tmp/some/path", "http://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error uploading")
+	}
+
+	c = fakeClient(500, "")
+	c.fs = mkFakeOps(nil,
+		[]struct {
+			rc  io.ReadCloser
+			err error
+		}{
+			{ioutil.NopCloser(strings.NewReader("x")), nil},
+		},
+		nil)
+	err = c.uploadFile("/tmp/some/path", "http://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error uploading")
+	}
+
+	c = brokenClient()
+	c.fs = mkFakeOps(nil,
+		[]struct {
+			rc  io.ReadCloser
+			err error
+		}{
+			{ioutil.NopCloser(strings.NewReader("x")), nil},
+		},
+		nil)
+	err = c.uploadFile("/tmp/some/path", "http://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error uploading")
+	}
+
+	c = fakeClient(500, "")
+	c.fs = mkFakeOps(nil,
+		[]struct {
+			rc  io.ReadCloser
+			err error
+		}{
+			{ioutil.NopCloser(strings.NewReader("x")), nil},
+		},
+		nil)
+	err = c.uploadFile("/tmp/some/path", "://whatever/x")
+	if err == nil {
+		t.Errorf("Expected error uploading")
+	}
+
+	c = fakeClient(204, "")
+	c.fs = mkFakeOps(nil,
+		[]struct {
+			rc  io.ReadCloser
+			err error
+		}{
+			{ioutil.NopCloser(strings.NewReader("x")), nil},
+		},
+		nil)
+	err = c.uploadFile("/tmp/some/path", "http://whatever/x")
+	if err != nil {
+		t.Errorf("Unexpected error uploading: %v", err)
 	}
 }
