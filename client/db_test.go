@@ -24,9 +24,25 @@ func TestDBSimple(t *testing.T) {
 		t.Errorf("Error adding: %v", err)
 	}
 
+	err = db.AddFile("/path2",
+		bitfog.FileData{Name: "path2", Size: 40550, Mode: 0644, Hash: 60957})
+	if err != nil {
+		t.Errorf("Error adding: %v", err)
+	}
+
+	err = db.RmFile("/path2")
+	if err != nil {
+		t.Errorf("Error removing: %v", err)
+	}
+
 	err = db.Close()
 	if err != nil {
 		t.Errorf("Error closing db: %v", err)
+	}
+
+	db, err = openDb(testDbName + ".nonexistent")
+	if err == nil {
+		t.Errorf("Expected to fail to open nonexistent DB, got %v", db)
 	}
 
 	db, err = openDb(testDbName)
@@ -39,4 +55,5 @@ func TestDBSimple(t *testing.T) {
 	if len(db.files) != 1 {
 		t.Errorf("Expected state to have one file, has %v", db.files)
 	}
+
 }

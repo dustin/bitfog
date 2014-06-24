@@ -50,7 +50,7 @@ func openDb(path string) (db, error) {
 	rv := db{path: path, files: make(map[string]bitfog.FileData)}
 	f, err := os.Open(path)
 	if err != nil {
-		return rv, nil
+		return rv, err
 	}
 	defer f.Close()
 	return rv, gob.NewDecoder(f).Decode(&rv.files)
