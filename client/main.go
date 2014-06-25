@@ -24,12 +24,7 @@ func init() {
 	}
 }
 
-var verbose bool
 var client = newBitfogClient()
-
-func init() {
-	flag.BoolVar(&verbose, "verbose", false, "verbose output")
-}
 
 func dbFromURL(u, path string) error {
 	data, err := client.decodeURL(u)
