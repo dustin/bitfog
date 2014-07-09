@@ -39,7 +39,9 @@ func dbFromURL(u, path string) error {
 	defer storage.Close()
 
 	for fn, fd := range data {
-		storage.AddFile(fn, fd)
+		if err := storage.AddFile(fn, fd); err != nil {
+			return err
+		}
 	}
 
 	return nil
