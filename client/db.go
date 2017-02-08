@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dustin/bitfog"
+	"github.com/sethwklein/errutil"
 )
 
 type db struct {
@@ -26,7 +27,7 @@ func (d *db) RmFile(name string) error {
 	return nil
 }
 
-func (d *db) Close() error {
+func (d *db) Close() (err error) {
 	if !d.changed {
 		return nil
 	}
@@ -35,7 +36,7 @@ func (d *db) Close() error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer errutil.AppendCall(&err, f.Close)
 	return gob.NewEncoder(f).Encode(d.files)
 }
 

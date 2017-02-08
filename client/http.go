@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sethwklein.net/go/errutil"
+
 	"github.com/dustin/bitfog"
 	"github.com/dustin/httputil"
 )
@@ -66,7 +68,7 @@ func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
 	}
 }
 
-func (c *bitfogClient) downloadFile(src, dest string) error {
+func (c *bitfogClient) downloadFile(src, dest string) (err error) {
 	resp, err := c.client.Get(src)
 	if err != nil {
 		return err
@@ -85,7 +87,7 @@ func (c *bitfogClient) downloadFile(src, dest string) error {
 			return err
 		}
 	}
-	defer f.Close()
+	defer errutil.AppendCall(&err, f.Close)
 
 	_, err = io.Copy(f, resp.Body)
 	return err
