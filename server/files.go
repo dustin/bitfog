@@ -44,8 +44,7 @@ func doPut(abs string, w http.ResponseWriter, req *http.Request) {
 	ctype := req.Header.Get("Content-Type")
 	switch ctype {
 	default:
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Invalid content type: %v.\n", ctype)
+		http.Error(w, "invalid content type: "+ctype, 400)
 		return
 	case "application/octet-stream":
 		os.RemoveAll(abs)
@@ -55,19 +54,26 @@ func doPut(abs string, w http.ResponseWriter, req *http.Request) {
 			f, err = os.Create(abs)
 			if err != nil {
 				log.Printf("Problem opening %s: %v", abs, err)
-				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Error deleting file.\n")
+				http.Error(w, "error deleting file: "+err.Error(), 500)
+				return
 			}
 		}
-		defer f.Close()
 		defer log.Printf("Created file %s", abs)
-		io.Copy(f, req.Body)
+		if _, err := io.Copy(f, req.Body); err != nil {
+			f.Close()
+			http.Error(w, "error writing data: "+err.Error(), 500)
+			return
+		}
+		if err := f.Close(); err != nil {
+			http.Error(w, "error closing: "+err.Error(), 500)
+			return
+		}
 	case "application/symlink":
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			log.Printf("Error reading symlink body.")
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Error reading body.\n")
+			http.Error(w, "Error reading symlink body: "+err.Error(), 400)
+			return
 		}
 		dest := string(body)
 		err = os.Symlink(dest, abs)
@@ -77,8 +83,8 @@ func doPut(abs string, w http.ResponseWriter, req *http.Request) {
 			err = os.Symlink(dest, abs)
 			if err != nil {
 				log.Printf("Problem symlinking %s: %v", abs, err)
-				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Error deleting file.\n")
+				http.Error(w, "Error creating symlink: "+err.Error(), 500)
+				return
 			}
 		}
 		log.Printf("Created symlink: %v -> %v", abs, dest)
@@ -90,8 +96,8 @@ func doDelete(abs string, w http.ResponseWriter, req *http.Request) {
 	err := os.Remove(abs)
 	if err != nil {
 		log.Printf("Error deleting:  %v", err)
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error deleting file.\n")
+		http.Error(w, "Error deleting file: "+err.Error(), 500)
+		return
 	}
 	log.Printf("Deleted %s", abs)
 	w.WriteHeader(204)
