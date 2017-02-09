@@ -129,7 +129,7 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 			fmt.Fprintf(w, "Error writing to tmp file")
 			return
 		}
-		cmd := exec.Command("rdiff", mode, f.Name(), abs)
+		cmd := exec.CommandContext(req.Context(), "rdiff", mode, f.Name(), abs)
 		cmd.Stdout = w
 		cmd.Stderr = os.Stderr
 		err = cmd.Start()
@@ -180,7 +180,7 @@ func handlePatch(conf itemConf, abs string, w http.ResponseWriter, req *http.Req
 		defer fout.Close()
 		defer os.Remove(fout.Name())
 
-		cmd := exec.Command("rdiff", mode, abs, f.Name())
+		cmd := exec.CommandContext(req.Context(), "rdiff", mode, abs, f.Name())
 		cmd.Stdout = fout
 		cmd.Stderr = os.Stderr
 		err = cmd.Start()
@@ -245,7 +245,7 @@ func handleGet(conf itemConf, abs string, w http.ResponseWriter, req *http.Reque
 		}
 	case "sig":
 		// Generating an rdiff signature
-		cmd := exec.Command("rdiff", "signature", abs)
+		cmd := exec.CommandContext(req.Context(), "rdiff", "signature", abs)
 		cmd.Stdout = w
 		err := cmd.Start()
 		if err != nil {
