@@ -8,7 +8,7 @@ import (
 
 // List of files that need to be added, removed.
 func computeChanged(src, dest map[string]bitfog.FileData) ([]string, []string) {
-	toadd, toremove := []string{}, []string{}
+	var toadd, toremove []string
 
 	for k := range dest {
 		if _, ok := src[k]; !ok {
