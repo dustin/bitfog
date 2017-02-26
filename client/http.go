@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -68,8 +69,13 @@ func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
 	}
 }
 
-func (c *bitfogClient) downloadFile(src, dest string) (err error) {
-	resp, err := c.client.Get(src)
+func (c *bitfogClient) downloadFile(ctx context.Context, src, dest string) (err error) {
+	req, err := http.NewRequest("GET", src, nil)
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -93,11 +99,12 @@ func (c *bitfogClient) downloadFile(src, dest string) (err error) {
 	return err
 }
 
-func (c *bitfogClient) deleteFile(dest string) error {
+func (c *bitfogClient) deleteFile(ctx context.Context, dest string) error {
 	req, err := http.NewRequest("DELETE", dest, nil)
 	if err != nil {
 		return err
 	}
+	req = req.WithContext(ctx)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
@@ -109,7 +116,7 @@ func (c *bitfogClient) deleteFile(dest string) error {
 	return nil
 }
 
-func (c *bitfogClient) uploadFile(src, dest string) error {
+func (c *bitfogClient) uploadFile(ctx context.Context, src, dest string) error {
 	srcfile, err := c.fs.Open(src)
 	if err != nil {
 		return err
@@ -120,6 +127,7 @@ func (c *bitfogClient) uploadFile(src, dest string) error {
 	if err != nil {
 		return err
 	}
+	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/octet-stream")
 
 	resp, err := c.client.Do(req)
@@ -133,11 +141,12 @@ func (c *bitfogClient) uploadFile(src, dest string) error {
 	return nil
 }
 
-func (c *bitfogClient) createSymlink(target, dest string) error {
+func (c *bitfogClient) createSymlink(ctx context.Context, target, dest string) error {
 	req, err := http.NewRequest("PUT", dest, strings.NewReader(target))
 	if err != nil {
 		return err
 	}
+	req = req.WithContext(ctx)
 	req.Header.Set("Content-Type", "application/symlink")
 
 	resp, err := c.client.Do(req)

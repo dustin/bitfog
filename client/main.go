@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -26,7 +27,7 @@ func init() {
 
 var client = newBitfogClient()
 
-func dbFromURL(u, path string) error {
+func dbFromURL(ctx context.Context, u, path string) error {
 	data, err := client.decodeURL(u)
 	if err != nil {
 		return err
@@ -47,18 +48,18 @@ func dbFromURL(u, path string) error {
 	return nil
 }
 
-func builddb() {
+func builddb(ctx context.Context) {
 	if flag.NArg() < 3 {
 		flag.Usage()
 		os.Exit(1)
 	}
-	err := dbFromURL(flag.Arg(1), flag.Arg(2))
+	err := dbFromURL(ctx, flag.Arg(1), flag.Arg(2))
 	if err != nil {
 		log.Fatalf("Error making list: %v", err)
 	}
 }
 
-func emptydb() {
+func emptydb(ctx context.Context) {
 	if flag.NArg() < 2 {
 		flag.Usage()
 		os.Exit(1)
@@ -70,14 +71,14 @@ func emptydb() {
 	defer storage.Close()
 }
 
-func fetchTmp(path, src string, paths []string, fd map[string]bitfog.FileData) error {
+func fetchTmp(ctx context.Context, path, src string, paths []string, fd map[string]bitfog.FileData) error {
 	log.Printf("Fetching %d files", len(paths))
 
 	for _, fn := range paths {
 		if fd[fn].Dest == "" {
 			log.Printf("  + %s", fn)
 			dest := filepath.Join(path, fn)
-			if err := client.downloadFile(src+fn, dest); err != nil {
+			if err := client.downloadFile(ctx, src+fn, dest); err != nil {
 				return err
 			}
 		}
@@ -85,7 +86,7 @@ func fetchTmp(path, src string, paths []string, fd map[string]bitfog.FileData) e
 	return nil
 }
 
-func fetch() {
+func fetch(ctx context.Context) {
 	if flag.NArg() < 4 {
 		flag.Usage()
 		os.Exit(1)
@@ -118,7 +119,7 @@ func fetch() {
 	}
 
 	log.Printf("Need to add %d files, and remove %d", len(toadd), len(toremove))
-	err = fetchTmp(tmpPath, srcurl, toadd, srcData)
+	err = fetchTmp(ctx, tmpPath, srcurl, toadd, srcData)
 	if err != nil {
 		log.Fatalf("Error downloading file: %v", err)
 	}
@@ -127,7 +128,7 @@ func fetch() {
 	}
 }
 
-func store() {
+func store(ctx context.Context) {
 	if flag.NArg() < 4 {
 		flag.Usage()
 		os.Exit(1)
@@ -155,7 +156,7 @@ func store() {
 
 	for _, fn := range toremove {
 		log.Printf(" - %s", fn)
-		err = client.deleteFile(desturl + fn)
+		err = client.deleteFile(ctx, desturl+fn)
 		if err != nil {
 			log.Fatalf("Error deleting %s: %v", fn, err)
 		}
@@ -165,9 +166,9 @@ func store() {
 		log.Printf(" + %s", fn)
 		src := filepath.Join(tmpPath, fn)
 		if srcData.files[fn].Dest == "" {
-			err = client.uploadFile(src, desturl+fn)
+			err = client.uploadFile(ctx, src, desturl+fn)
 		} else {
-			err = client.createSymlink(srcData.files[fn].Dest, desturl+fn)
+			err = client.createSymlink(ctx, srcData.files[fn].Dest, desturl+fn)
 		}
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -185,16 +186,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx := context.Background()
+
 	switch flag.Arg(0) {
 	default:
 		flag.Usage()
 	case "builddb":
-		builddb()
+		builddb(ctx)
 	case "emptydb":
-		emptydb()
+		emptydb(ctx)
 	case "fetch":
-		fetch()
+		fetch(ctx)
 	case "store":
-		store()
+		store(ctx)
 	}
 }

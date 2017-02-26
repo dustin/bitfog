@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/dustin/bitfog"
 )
 
@@ -104,52 +106,54 @@ func TestDecodePartialSuccess(t *testing.T) {
 }
 
 func TestDeleteFile(t *testing.T) {
+	ctx := context.Background()
 	c := fakeClient(204, "")
-	err := c.deleteFile("http://whatever/x")
+	err := c.deleteFile(ctx, "http://whatever/x")
 	if err != nil {
 		t.Errorf("Error trying delete: %v", err)
 	}
 
 	c = fakeClient(500, "")
-	err = c.deleteFile("http://whatever/x")
+	err = c.deleteFile(ctx, "http://whatever/x")
 	if err == nil {
 		t.Errorf("expected 500 error, but succeeded")
 	}
 
 	c = brokenClient()
-	err = c.deleteFile("http://whatever/x")
+	err = c.deleteFile(ctx, "http://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error deleting, but succeeded")
 	}
 
 	c = brokenClient()
-	err = c.deleteFile("://whatever/x")
+	err = c.deleteFile(ctx, "://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error deleting, but succeeded")
 	}
 }
 
 func TestCreateSymlink(t *testing.T) {
+	ctx := context.Background()
 	c := fakeClient(204, "")
-	err := c.createSymlink("y", "http://whatever/x")
+	err := c.createSymlink(ctx, "y", "http://whatever/x")
 	if err != nil {
 		t.Errorf("Error trying to create symlink: %v", err)
 	}
 
 	c = brokenClient()
-	err = c.createSymlink("y", "http://whatever/x")
+	err = c.createSymlink(ctx, "y", "http://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error creating symlink, but succeeded")
 	}
 
 	c = brokenClient()
-	err = c.createSymlink("y", "://whatever/x")
+	err = c.createSymlink(ctx, "y", "://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error creating symlink, but succeeded")
 	}
 
 	c = fakeClient(500, "")
-	err = c.createSymlink("y", "http://whatever/x")
+	err = c.createSymlink(ctx, "y", "http://whatever/x")
 	if err == nil {
 		t.Errorf("expected 500 error, but succeeded")
 	}
@@ -204,14 +208,16 @@ func (n nopWriteCloser) Close() error {
 }
 
 func TestDownload(t *testing.T) {
+	ctx := context.Background()
+
 	c := fakeClient(500, "")
-	err := c.downloadFile("http://whatever/x", "/tmp/some/path")
+	err := c.downloadFile(ctx, "http://whatever/x", "/tmp/some/path")
 	if err == nil {
 		t.Errorf("Expected error downloading")
 	}
 
 	c = brokenClient()
-	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
+	err = c.downloadFile(ctx, "http://whatever/x", "/tmp/some/path")
 	if err == nil {
 		t.Errorf("Expected error downloading")
 	}
@@ -227,7 +233,7 @@ func TestDownload(t *testing.T) {
 		},
 		nil,
 		[]error{nil})
-	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
+	err = c.downloadFile(ctx, "http://whatever/x", "/tmp/some/path")
 	if err == nil {
 		t.Errorf("Expected error trying to make dirs %v", err)
 	}
@@ -243,13 +249,14 @@ func TestDownload(t *testing.T) {
 		},
 		nil,
 		[]error{nil})
-	err = c.downloadFile("http://whatever/x", "/tmp/some/path")
+	err = c.downloadFile(ctx, "http://whatever/x", "/tmp/some/path")
 	if err != nil {
 		t.Errorf("Expected no error downloading, got %v", err)
 	}
 }
 
 func TestUpload(t *testing.T) {
+	ctx := context.Background()
 	c := fakeClient(500, "")
 	c.fs = mkFakeOps(nil,
 		[]struct {
@@ -259,7 +266,7 @@ func TestUpload(t *testing.T) {
 			{nil, errors.New("nope")},
 		},
 		nil)
-	err := c.uploadFile("/tmp/some/path", "http://whatever/x")
+	err := c.uploadFile(ctx, "/tmp/some/path", "http://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error uploading")
 	}
@@ -273,7 +280,7 @@ func TestUpload(t *testing.T) {
 			{ioutil.NopCloser(strings.NewReader("x")), nil},
 		},
 		nil)
-	err = c.uploadFile("/tmp/some/path", "http://whatever/x")
+	err = c.uploadFile(ctx, "/tmp/some/path", "http://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error uploading")
 	}
@@ -287,7 +294,7 @@ func TestUpload(t *testing.T) {
 			{ioutil.NopCloser(strings.NewReader("x")), nil},
 		},
 		nil)
-	err = c.uploadFile("/tmp/some/path", "http://whatever/x")
+	err = c.uploadFile(ctx, "/tmp/some/path", "http://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error uploading")
 	}
@@ -301,7 +308,7 @@ func TestUpload(t *testing.T) {
 			{ioutil.NopCloser(strings.NewReader("x")), nil},
 		},
 		nil)
-	err = c.uploadFile("/tmp/some/path", "://whatever/x")
+	err = c.uploadFile(ctx, "/tmp/some/path", "://whatever/x")
 	if err == nil {
 		t.Errorf("Expected error uploading")
 	}
@@ -315,7 +322,7 @@ func TestUpload(t *testing.T) {
 			{ioutil.NopCloser(strings.NewReader("x")), nil},
 		},
 		nil)
-	err = c.uploadFile("/tmp/some/path", "http://whatever/x")
+	err = c.uploadFile(ctx, "/tmp/some/path", "http://whatever/x")
 	if err != nil {
 		t.Errorf("Unexpected error uploading: %v", err)
 	}
