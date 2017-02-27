@@ -53,8 +53,7 @@ func builddb(ctx context.Context) {
 		flag.Usage()
 		os.Exit(1)
 	}
-	err := dbFromURL(ctx, flag.Arg(1), flag.Arg(2))
-	if err != nil {
+	if err := dbFromURL(ctx, flag.Arg(1), flag.Arg(2)); err != nil {
 		log.Fatalf("Error making list: %v", err)
 	}
 }
@@ -109,18 +108,15 @@ func fetch(ctx context.Context) {
 
 	toadd, toremove := computeChanged(srcData, destData.files)
 
-	err = os.RemoveAll(tmpPath)
-	if err != nil {
+	if err := os.RemoveAll(tmpPath); err != nil {
 		log.Fatalf("Error cleaning up tmp dir: %v", err)
 	}
-	err = os.Mkdir(tmpPath, 0777)
-	if err != nil {
+	if err := os.Mkdir(tmpPath, 0777); err != nil {
 		log.Fatalf("Error recreating tmp dir: %v", err)
 	}
 
 	log.Printf("Need to add %d files, and remove %d", len(toadd), len(toremove))
-	err = fetchTmp(ctx, tmpPath, srcurl, toadd, srcData)
-	if err != nil {
+	if err := fetchTmp(ctx, tmpPath, srcurl, toadd, srcData); err != nil {
 		log.Fatalf("Error downloading file: %v", err)
 	}
 	for _, fn := range toremove {
@@ -156,8 +152,7 @@ func store(ctx context.Context) {
 
 	for _, fn := range toremove {
 		log.Printf(" - %s", fn)
-		err = client.deleteFile(ctx, desturl+fn)
-		if err != nil {
+		if err := client.deleteFile(ctx, desturl+fn); err != nil {
 			log.Fatalf("Error deleting %s: %v", fn, err)
 		}
 	}
