@@ -42,14 +42,15 @@ func brokenClient() *bitfogClient {
 }
 
 func TestDecodeFail(t *testing.T) {
+	ctx := context.Background()
 	c := brokenClient()
-	rv, err := c.decodeURL("http://whatever/")
+	rv, err := c.decodeURL(ctx, "http://whatever/")
 	if err == nil {
 		t.Errorf("Expected failure, got %v", rv)
 	}
 
 	c = fakeClient(500, "Broken")
-	rv, err = c.decodeURL("http://whatever/")
+	rv, err = c.decodeURL(ctx, "http://whatever/")
 	if err == nil {
 		t.Errorf("Expected failure, got %v", rv)
 	}
@@ -60,8 +61,9 @@ func TestDecodeSuccess(t *testing.T) {
 {"name": "b", "size": 21866, "mode": 644, "mtime": 1402853551, "hash": 62130}
 {"name": "c", "size": 75648, "mode": 644, "mtime": 1402853551, "hash": 51301, "linkdest": "a"}`
 
+	ctx := context.Background()
 	c := fakeClient(200, res)
-	rv, err := c.decodeURL("http://whatever/")
+	rv, err := c.decodeURL(ctx, "http://whatever/")
 	if err != nil {
 		t.Fatalf("Error decoding:  %v", err)
 	}
@@ -85,8 +87,9 @@ func TestDecodeSuccess(t *testing.T) {
 func TestDecodePartialSuccess(t *testing.T) {
 	res := `{"name": "a", "size": 37665, "mode": 644, "mtime": 1402853551, "hash": 90018} blah`
 
+	ctx := context.Background()
 	c := fakeClient(200, res)
-	rv, err := c.decodeURL("http://whatever/")
+	rv, err := c.decodeURL(ctx, "http://whatever/")
 	if err == nil {
 		t.Fatalf("Expected an error, but didn't get one:  %v", err)
 	}

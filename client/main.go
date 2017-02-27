@@ -28,7 +28,7 @@ func init() {
 var client = newBitfogClient()
 
 func dbFromURL(ctx context.Context, u, path string) error {
-	data, err := client.decodeURL(u)
+	data, err := client.decodeURL(ctx, u)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func fetch(ctx context.Context) {
 
 	log.Printf("Read %d files", len(destData.files))
 
-	srcData, err := client.decodeURL(srcurl)
+	srcData, err := client.decodeURL(ctx, srcurl)
 	if err != nil {
 		log.Fatalf("Error reading from src: %s: %v", srcurl, err)
 	}
@@ -140,7 +140,7 @@ func store(ctx context.Context) {
 
 	log.Printf("Read %d files", len(srcData.files))
 
-	destData, err := client.decodeURL(desturl)
+	destData, err := client.decodeURL(ctx, desturl)
 	if err != nil {
 		log.Fatalf("Error reading from dest: %s: %v", desturl, err)
 	}

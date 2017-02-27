@@ -41,10 +41,15 @@ func newBitfogClient() *bitfogClient {
 	return &bitfogClient{&http.Client{}, posixFsOps}
 }
 
-func (c *bitfogClient) decodeURL(u string) (map[string]bitfog.FileData, error) {
+func (c *bitfogClient) decodeURL(ctx context.Context, u string) (map[string]bitfog.FileData, error) {
 	rv := map[string]bitfog.FileData{}
 
-	resp, err := c.client.Get(u)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return rv, err
 	}
